@@ -1,6 +1,7 @@
 package tools.minestom.api.polar;
 
 import net.hollowcube.polar.AnvilPolar;
+import net.hollowcube.polar.ChunkSelector;
 import net.hollowcube.polar.PolarWorld;
 import net.hollowcube.polar.PolarWriter;
 import org.apache.commons.io.FileUtils;
@@ -20,7 +21,12 @@ import java.util.zip.ZipInputStream;
 public class PolarController {
 
     @PostMapping
-    public ResponseEntity<byte[]> convertWorldToPolar(@RequestBody byte[] data) {
+    public ResponseEntity<byte[]> convertWorldToPolar(@RequestParam("file") MultipartFile file,
+                                                      @RequestParam(value = "min", required = false, defaultValue = "-4") Integer min,
+                                                      @RequestParam(value = "max", required = false, defaultValue = "19") Integer max,
+                                                      @RequestParam(value = "center-x", required = false, defaultValue = "0") int centerX,
+                                                      @RequestParam(value = "center-z", required = false, defaultValue = "0") int centerZ,
+                                                      @RequestParam(value = "radius", required = false) Integer radius) {
         Path tempDir;
         try {
             tempDir = Files.createTempDirectory("polar-convert");
@@ -32,7 +38,7 @@ public class PolarController {
         Path zipFile = tempDir.resolve("input.zip");
         System.out.println("Received world file");
 
-        try (InputStream is = new ByteArrayInputStream(data);
+        try (InputStream is = file.getInputStream();
              OutputStream output = Files.newOutputStream(zipFile)) {
             is.transferTo(output);
         } catch (IOException e) {
@@ -76,7 +82,8 @@ public class PolarController {
 
         PolarWorld world;
         try {
-            world = AnvilPolar.anvilToPolar(worldDir);
+            ChunkSelector selector = radius == null ? ChunkSelector.all() : ChunkSelector.radius(centerX, centerZ, radius);
+            world = AnvilPolar.anvilToPolar(worldDir, min, max, selector);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                     .body(("Error converting world to polar: " + e.getMessage()).getBytes());

@@ -22,6 +22,7 @@ public class PolarController {
 
     @PostMapping
     public ResponseEntity<byte[]> convertWorldToPolar(@RequestParam("file") MultipartFile file,
+                                                      @RequestParam(value = "extra-data", required = false) MultipartFile extraData,
                                                       @RequestParam(value = "min", required = false, defaultValue = "-4") Integer min,
                                                       @RequestParam(value = "max", required = false, defaultValue = "19") Integer max,
                                                       @RequestParam(value = "center-x", required = false, defaultValue = "0") int centerX,
@@ -84,6 +85,11 @@ public class PolarController {
         try {
             ChunkSelector selector = radius == null ? ChunkSelector.all() : ChunkSelector.radius(centerX, centerZ, radius);
             world = AnvilPolar.anvilToPolar(worldDir, min, max, selector);
+
+            if (extraData != null) {
+                byte[] extraBytes = extraData.getBytes();
+                world.userData(extraBytes);
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
                     .body(("Error converting world to polar: " + e.getMessage()).getBytes());
